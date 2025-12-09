@@ -31,12 +31,32 @@ import startAllCanvasLoops from './core/tileserver';
 const app = express();
 app.disable('x-powered-by');
 
+// Security headers middleware
+app.use((req, res, next) => {
+  // Prevent clickjacking
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  // Prevent MIME type sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  // Enable XSS protection (legacy browsers)
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  // Referrer policy
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Permissions policy (formerly Feature-Policy)
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+});
 
 // Call Garbage Collector every 30 seconds
 setInterval(forceGC, 10 * 60 * SECOND);
 
 // create http server
 const server = http.createServer(app);
+
+// Increase server timeouts to handle long-running pixel operations
+// Default is 120 seconds (2 minutes), increase to 1 hour for large pixel batches
+server.timeout = 3600000; // 1 hour in milliseconds
+server.keepAliveTimeout = 3600000; // 1 hour
+server.headersTimeout = 3600000; // 1 hour
 
 //
 // websockets

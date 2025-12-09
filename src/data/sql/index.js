@@ -5,6 +5,9 @@ import UserChannel from './UserChannel';
 import Message from './Message';
 import UserBlock from './UserBlock';
 import IPInfo from './IPInfo';
+import Community from './Community';
+import CommunityMember from './CommunityMember';
+import CommunityRole from './CommunityRole';
 
 /*
  * User Channel access
@@ -35,6 +38,21 @@ RegUser.belongsToMany(RegUser, {
   foreignKey: 'buid',
 });
 
+/*
+ * Community relationships
+ */
+RegUser.belongsToMany(Community, {
+  as: 'communities',
+  through: CommunityMember,
+  foreignKey: 'userId',
+});
+Community.belongsToMany(RegUser, {
+  as: 'members',
+  through: CommunityMember,
+  foreignKey: 'communityId',
+});
+
+
 export {
   Whitelist,
   RegUser,
@@ -43,4 +61,7 @@ export {
   Message,
   UserBlock,
   IPInfo,
+  Community,
+  CommunityMember,
+  CommunityRole,
 };

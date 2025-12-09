@@ -7,6 +7,7 @@ i18n/*.mo
 test*.js
 
 logs
+log/
 *.log
 npm-debug.log*
 *.tmp
@@ -23,6 +24,25 @@ node_modules/
 .npm
 .eslintcache
 .env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 
 osm.tar.gz
 clean.png
@@ -30,3 +50,15 @@ backup
 backup/*
 ips
 pixelplanetmap.zip
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output

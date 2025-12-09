@@ -3,9 +3,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { t } from 'ttag';
 
 import { shardOrigin } from '../store/actions/fetch';
+import { setDrawingMode } from '../store/actions';
 
 async function submitIPAction(
   action,
@@ -72,17 +74,53 @@ async function submitMakeMod(
   }
 }
 
+async function getAdminCooldownStatus(callback) {
+  const data = new FormData();
+  data.append('getadmincooldown', true);
+  const resp = await fetch(`${shardOrigin}/api/modtools`, {
+    credentials: 'include',
+    method: 'POST',
+    body: data,
+  });
+  if (resp.ok) {
+    const result = await resp.json();
+    callback(result.enabled);
+  } else {
+    callback(true); // default: cooldown enabled
+  }
+}
+
+async function setAdminCooldownStatus(enabled, callback) {
+  const data = new FormData();
+  data.append('setadmincooldown', enabled);
+  const resp = await fetch(`${shardOrigin}/api/modtools`, {
+    credentials: 'include',
+    method: 'POST',
+    body: data,
+  });
+  if (resp.ok) {
+    callback(true, await resp.text());
+  } else {
+    callback(false, await resp.text());
+  }
+}
+
 
 function Admintools() {
+  const dispatch = useDispatch();
   const [iPAction, selectIPAction] = useState('iidtoip');
   const [modName, selectModName] = useState('');
   const [txtval, setTxtval] = useState('');
   const [resp, setResp] = useState(null);
   const [modlist, setModList] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [adminCooldownEnabled, setAdminCooldownEnabled] = useState(true);
+  
+  const drawingMode = useSelector((state) => state.gui.drawingMode);
 
   useEffect(() => {
     getModList((mods) => setModList(mods));
+    getAdminCooldownStatus((enabled) => setAdminCooldownEnabled(enabled));
   }, []);
 
   return (
@@ -117,7 +155,7 @@ function Admintools() {
             selectIPAction(sel.options[sel.selectedIndex].value);
           }}
         >
-          {['iidtoip', 'iptoiid']
+          {['iidtoip', 'iptoiid', 'clearratelimit']
             .map((opt) => (
               <option
                 key={opt}
@@ -236,6 +274,109 @@ function Admintools() {
           }}
         >
           {(submitting) ? '...' : t`Submit`}
+        </button>
+        <br />
+        <div className="modaldivider" />
+        <h3>{t`Admin Cooldown`}</h3>
+        <p>
+          {t`Cooldown Setting`}:
+        </p>
+        <select
+          value={adminCooldownEnabled ? 'cooldown' : 'nocooldown'}
+          onChange={(e) => {
+            const enabled = e.target.value === 'cooldown';
+            if (submitting) {
+              return;
+            }
+            setSubmitting(true);
+            setAdminCooldownStatus(enabled, (success, result) => {
+              setSubmitting(false);
+              if (success) {
+                setAdminCooldownEnabled(enabled);
+                setResp(result);
+              } else {
+                setResp(result);
+              }
+            });
+          }}
+          disabled={submitting}
+        >
+          <option value="cooldown">{t`Cooldown`}</option>
+          <option value="nocooldown">{t`No Cooldown`}</option>
+        </select>
+        <p style={{ fontSize: '0.9em', color: '#666', marginTop: '5px' }}>
+          {adminCooldownEnabled
+            ? t`Pixels will be counted in stats and you will have cooldown`
+            : t`Pixels will NOT be counted in stats and you will have no cooldown`}
+        </p>
+        <br />
+        <div className="modaldivider" />
+        <h3>{t`Drawing Tools`}</h3>
+        <p>
+          {t`Select Drawing Tool`}:
+        </p>
+        <select
+          value={drawingMode}
+          onChange={(e) => {
+            dispatch(setDrawingMode(e.target.value));
+          }}
+        >
+          <option value="normal">{t`Normal`}</option>
+          <option value="brush">{t`Brush`}</option>
+          <option value="line">{t`Line`}</option>
+          <option value="fill">{t`Fill`}</option>
+        </select>
+        {drawingMode === 'brush' && (
+          <p style={{ fontSize: '0.9em', color: '#666', marginTop: '10px' }}>
+            {t`Brush tool has no cooldown. Click and drag to paint.`}
+          </p>
+        )}
+        {(drawingMode === 'line' || drawingMode === 'fill') && (
+          <p style={{ fontSize: '0.9em', color: '#666', marginTop: '5px' }}>
+            {drawingMode === 'line' 
+              ? t`Line tool: Click two points to draw a line. No cooldown.`
+              : t`Fill tool: Click to fill an area. No cooldown.`}
+          </p>
+        )}
+        <br />
+        <div className="modaldivider" />
+        <h3>{t`Tile Management`}</h3>
+        <p>
+          {t`Regenerate all tiles for all canvases. This fixes zoom issues where zoomed out view shows nothing.`}
+        </p>
+        <p style={{ fontSize: '0.9em', color: '#666', marginTop: '5px' }}>
+          {t`Warning: This process may take a long time. Tiles will be regenerated in the background.`}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            if (submitting) {
+              return;
+            }
+            if (!window.confirm(t`Are you sure you want to regenerate all tiles? This may take a long time.`)) {
+              return;
+            }
+            setSubmitting(true);
+            const data = new FormData();
+            data.append('regeneratetiles', true);
+            fetch(`${shardOrigin}/api/modtools`, {
+              credentials: 'include',
+              method: 'POST',
+              body: data,
+            })
+              .then((resp) => resp.text())
+              .then((ret) => {
+                setSubmitting(false);
+                setResp(ret);
+              })
+              .catch((err) => {
+                setSubmitting(false);
+                setResp(`Error: ${err.message}`);
+              });
+          }}
+          disabled={submitting}
+        >
+          {submitting ? '...' : t`Regenerate All Tiles`}
         </button>
         <br />
         <div className="modaldivider" />

@@ -19,6 +19,7 @@ import baninfo from './baninfo';
 import getiid from './getiid';
 import shards from './shards';
 import banme from './banme';
+import community from './community';
 
 const router = express.Router();
 
@@ -72,6 +73,11 @@ router.use(passport.session());
  * (does not json bodies, but urlencoded)
  */
 router.use('/modtools', modtools);
+
+/*
+ * community
+ */
+router.use('/community', community);
 
 /*
  * create dummy user with just ip if not

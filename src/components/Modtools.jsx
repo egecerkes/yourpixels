@@ -9,6 +9,7 @@ import Canvastools from './ModCanvastools';
 import Admintools from './Admintools';
 import Watchtools from './ModWatchtools';
 import IIDTools from './ModIIDtools';
+import VIPTools from './ModVIPtools';
 
 
 const CONTENT = {
@@ -16,6 +17,7 @@ const CONTENT = {
   Admin: Admintools,
   Watch: Watchtools,
   IID: IIDTools,
+  VIP: VIPTools,
 };
 
 function Modtools() {

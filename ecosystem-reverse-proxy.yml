@@ -1,0 +1,8 @@
+apps:
+  - script     : ./reverse-proxy-simple.js
+    name       : 'reverse-proxy'
+    node_args  : --expose-gc
+    watch      : false
+    env:
+      NODE_ENV: production
+

@@ -63,7 +63,7 @@ function ChatMessage({
                   openCm(event.clientX, event.clientY, name, uid);
                 }}
               >
-                {name}
+                {name}({uid})
               </span>
               {': '}
             </React.Fragment>

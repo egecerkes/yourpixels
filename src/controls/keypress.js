@@ -10,6 +10,7 @@ import {
   togglePixelNotify,
   toggleMute,
   selectCanvas,
+  toggleOpenMenu,
 } from '../store/actions';
 import {
   notify,
@@ -23,6 +24,12 @@ function createKeyPressHandler(store) {
     if (event.target.nodeName === 'INPUT'
       || event.target.nodeName === 'TEXTAREA'
     ) {
+      return;
+    }
+
+    // ESC key to toggle menu
+    if (event.key === 'Escape' || event.keyCode === 27) {
+      store.dispatch(toggleOpenMenu());
       return;
     }
 

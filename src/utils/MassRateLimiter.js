@@ -91,6 +91,20 @@ class MassRateLimiter {
       );
     }
   }
+
+  /*
+   * clear rate limit for a specific identifier (IP)
+   */
+  clear(identifier) {
+    this.triggers.delete(identifier);
+  }
+
+  /*
+   * clear all rate limits
+   */
+  clearAll() {
+    this.triggers.clear();
+  }
 }
 
 export default MassRateLimiter;

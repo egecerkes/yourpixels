@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { FaCog } from 'react-icons/fa';
+import { FaSlidersH } from 'react-icons/fa';
 import { t } from 'ttag';
 
 import useLink from '../hooks/link';
@@ -21,7 +21,7 @@ const SettingsButton = () => {
       title={t`Settings`}
       tabIndex={-1}
     >
-      <FaCog />
+      <FaSlidersH />
     </div>
   );
 };

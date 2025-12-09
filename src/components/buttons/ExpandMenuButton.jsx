@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { MdExpandMore, MdExpandLess } from 'react-icons/md';
+import { FaBars, FaTimes } from 'react-icons/fa';
 import { t } from 'ttag';
 
 import { toggleOpenMenu } from '../../store/actions';
@@ -23,7 +23,7 @@ const ExpandMenuButton = () => {
       tabIndex={-1}
       onClick={() => dispatch(toggleOpenMenu())}
     >
-      {(menuOpen) ? <MdExpandLess /> : <MdExpandMore /> }
+      {(menuOpen) ? <FaTimes /> : <FaBars /> }
     </div>
   );
 };

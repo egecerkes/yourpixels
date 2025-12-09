@@ -93,4 +93,13 @@ export const CAPTCHA_TIME = parseInt(process.env.CAPTCHA_TIME, 10) || 30;
 // time during which the user can solve a captcha in seconds
 export const CAPTCHA_TIMEOUT = parseInt(process.env.CAPTCHA_TIMEOUT, 10) || 120;
 
-export const SESSION_SECRET = process.env.SESSION_SECRET || 'dummy';
+// Session secret - MUST be set in production via environment variable
+// Generate a secure random string: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+export const SESSION_SECRET = process.env.SESSION_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET environment variable must be set in production!');
+  }
+  // Development fallback - NOT secure, only for local development
+  console.warn('WARNING: Using insecure default SESSION_SECRET. Set SESSION_SECRET environment variable for production!');
+  return 'dummy-dev-secret-change-in-production';
+})();

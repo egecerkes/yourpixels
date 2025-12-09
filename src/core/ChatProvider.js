@@ -122,27 +122,28 @@ export class ChatProvider {
       this.publicChannelIds.push(id);
     }
     // find or create non-english lang channels
-    const langs = Object.keys(ttags);
-    for (let i = 0; i < langs.length; i += 1) {
-      const name = langs[i];
-      if (name === 'default') {
-        continue;
-      }
-      // eslint-disable-next-line no-await-in-loop
-      const channel = await Channel.findOrCreate({
-        where: { name },
-        defaults: {
-          name,
-        },
-      });
-      const { id, type, lastTs } = channel[0];
-      this.langChannels[name] = {
-        id,
-        type,
-        lastTs,
-      };
-      this.publicChannelIds.push(id);
-    }
+    // DISABLED: Only 'en' and 'int' channels are allowed
+    // const langs = Object.keys(ttags);
+    // for (let i = 0; i < langs.length; i += 1) {
+    //   const name = langs[i];
+    //   if (name === 'default') {
+    //     continue;
+    //   }
+    //   // eslint-disable-next-line no-await-in-loop
+    //   const channel = await Channel.findOrCreate({
+    //     where: { name },
+    //     defaults: {
+    //       name,
+    //     },
+    //   });
+    //   const { id, type, lastTs } = channel[0];
+    //   this.langChannels[name] = {
+    //     id,
+    //     type,
+    //     lastTs,
+    //   };
+    //   this.publicChannelIds.push(id);
+    // }
     // find or create default users
     let name = INFO_USER_NAME;
     const infoUser = await RegUser.findOrCreate({
@@ -190,21 +191,32 @@ export class ChatProvider {
     DailyCron.hook(this.clearOldMessages);
   }
 
-  getDefaultChannels(lang) {
-    const langChannel = {};
-    if (lang && lang !== 'en') {
-      const { langChannels } = this;
-      if (langChannels[lang]) {
-        const {
-          id, type, lastTs,
-        } = langChannels[lang];
-        langChannel[id] = [lang, type, lastTs];
+  getDefaultChannels(lang, userlvl = 0) {
+    // DISABLED: Only 'en' and 'int' channels are allowed
+    // const langChannel = {};
+    // if (lang && lang !== 'en') {
+    //   const { langChannels } = this;
+    //   if (langChannels[lang]) {
+    //     const {
+    //       id, type, lastTs,
+    //     } = langChannels[lang];
+    //     langChannel[id] = [lang, type, lastTs];
+    //   }
+    // }
+    const channels = { ...this.defaultChannels };
+    
+    // Filter out 'mod' channel if user is not mod or admin (userlvl >= 2 for mod, userlvl === 1 for admin)
+    if (userlvl === 0) {
+      // Remove mod channel for normal users
+      const modChannelId = Object.keys(channels).find(
+        (id) => channels[id][0] === 'mod'
+      );
+      if (modChannelId) {
+        delete channels[modChannelId];
       }
     }
-    return {
-      ...langChannel,
-      ...this.defaultChannels,
-    };
+    
+    return channels;
   }
 
   static async addUserToChannel(
@@ -234,6 +246,13 @@ export class ChatProvider {
    * this is just the case in chathistory.js and SocketServer
    */
   userHasChannelAccess(user, cid) {
+    // Check if it's the mod channel
+    const channelName = this.defaultChannels[cid] ? this.defaultChannels[cid][0] : null;
+    if (channelName === 'mod') {
+      // Only mod (userlvl >= 2) and admin (userlvl === 1) can access mod channel
+      return user.userlvl >= 1;
+    }
+    
     if (this.defaultChannels[cid]) {
       return true;
     }
@@ -472,9 +491,11 @@ export class ChatProvider {
     }
 
     let displayCountry = country;
-    if (user.userlvl !== 0) {
-      displayCountry = 'zz';
-    } else if (user.id === 2927) {
+    // Adminlerin ve modların bayraklarını göster (zz yerine gerçek bayrağı kullan)
+    // if (user.userlvl !== 0) {
+    //   displayCountry = 'zz';
+    // } else if (user.id === 2927) {
+    if (user.id === 2927) {
       /*
        * hard coded flags
        * TODO make it possible to modify user flags

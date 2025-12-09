@@ -5,8 +5,8 @@ import WebSocket from 'ws';
 
 import logger from '../core/logger';
 import canvases from '../core/canvases';
-import MassRateLimiter from '../utils/MassRateLimiter';
 import Counter from '../utils/Counter';
+import rateLimiter from './rateLimiter';
 import { getIPFromRequest, getHostFromRequest } from '../utils/ip';
 import {
   REG_CANVAS_OP,
@@ -39,7 +39,6 @@ import { checkCaptchaSolution } from '../data/redis/captcha';
 
 
 const ipCounter = new Counter();
-const rateLimiter = new MassRateLimiter(HOUR);
 
 class SocketServer {
   // WebSocket.Server
@@ -66,6 +65,8 @@ class SocketServer {
       // path: "/ws",
       // server,
       noServer: true,
+      // Increase WebSocket timeout to handle long pixel operations
+      clientTimeout: 3600000, // 1 hour in milliseconds
     });
     this.wss = wss;
 
@@ -379,7 +380,9 @@ class SocketServer {
   }
 
   checkHealth() {
-    const ts = Date.now() - 120 * 1000;
+    // Increased from 120s (2 minutes) to 1 hour to allow long pixel operations
+    // Large pixel batches can take a long time, don't kill connection
+    const ts = Date.now() - 3600000; // 1 hour in milliseconds
     const promises = [];
     this.wss.clients.forEach((ws) => {
       promises.push(new Promise((resolve) => {
@@ -387,7 +390,7 @@ class SocketServer {
           ws.readyState === WebSocket.OPEN
           && ts > ws.timeLastMsg
         ) {
-          logger.info(`Killing dead websocket from ${ws.user.ip}`);
+          logger.info(`Killing dead websocket from ${ws.user.ip} (no message for 1 hour)`);
           ws.terminate();
           resolve();
         }
@@ -516,24 +519,27 @@ class SocketServer {
       const { ip } = ws.user;
       const opcode = buffer[0];
 
-      // rate limit
-      let limiterDeltaTime = 200;
-      let reason = 'socket spam';
-      if (opcode === REG_CHUNK_OP) {
-        limiterDeltaTime = 40;
-        reason = 'register chunk spam';
-      } else if (opcode === DEREG_CHUNK_OP) {
-        limiterDeltaTime = 10;
-        reason = 'deregister chunk spam';
-      }
-      const isLimited = rateLimiter.tick(
-        ip,
-        limiterDeltaTime,
-        reason,
-        SocketServer.onRateLimitTrigger,
-      );
-      if (isLimited) {
-        return;
+      // rate limit - skip for pixel updates to allow large pixel batches
+      // Only apply rate limit for chunk registration/deregistration
+      if (opcode !== PIXEL_UPDATE_OP) {
+        let limiterDeltaTime = 200;
+        let reason = 'socket spam';
+        if (opcode === REG_CHUNK_OP) {
+          limiterDeltaTime = 40;
+          reason = 'register chunk spam';
+        } else if (opcode === DEREG_CHUNK_OP) {
+          limiterDeltaTime = 10;
+          reason = 'deregister chunk spam';
+        }
+        const isLimited = rateLimiter.tick(
+          ip,
+          limiterDeltaTime,
+          reason,
+          SocketServer.onRateLimitTrigger,
+        );
+        if (isLimited) {
+          return;
+        }
       }
       // ----
 
@@ -550,31 +556,55 @@ class SocketServer {
           const {
             i, j, pixels,
           } = hydratePixelUpdate(buffer);
-          const {
-            wait,
-            coolDown,
-            pxlCnt,
-            rankedPxlCnt,
-            retCode,
-          } = await drawByOffsets(
+          
+          // Process pixel operation asynchronously to prevent timeout
+          // Send response immediately after processing, even if it takes time
+          drawByOffsets(
             ws.user,
             canvasId,
             i, j,
             pixels,
             connectedTs,
-          );
+          )
+            .then((result) => {
+              const {
+                wait,
+                coolDown,
+                pxlCnt,
+                rankedPxlCnt,
+                retCode,
+              } = result;
 
-          if (retCode > 9 && retCode !== 13) {
-            rateLimiter.add(ip, 800);
-          }
+              // Don't add rate limit penalty for pixel operations
+              // Large pixel batches are allowed without rate limiting
+              // if (retCode > 9 && retCode !== 13) {
+              //   rateLimiter.add(ip, 800);
+              // }
 
-          ws.send(dehydratePixelReturn(
-            retCode,
-            wait,
-            coolDown,
-            pxlCnt,
-            rankedPxlCnt,
-          ));
+              // Only send response if WebSocket is still open
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(dehydratePixelReturn(
+                  retCode,
+                  wait,
+                  coolDown,
+                  pxlCnt,
+                  rankedPxlCnt,
+                ));
+              }
+            })
+            .catch((err) => {
+              logger.error(`Error processing pixels: ${err.message}`);
+              // Send error response if WebSocket is still open
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(dehydratePixelReturn(
+                  16, // Timeout/error code
+                  0,
+                  0,
+                  0,
+                  0,
+                ));
+              }
+            });
           break;
         }
         case REG_CANVAS_OP: {

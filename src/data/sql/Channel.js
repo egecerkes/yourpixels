@@ -27,11 +27,21 @@ const Channel = sequelize.define('Channel', {
    * 1: DM
    * 2: Group (not implemented)
    * 3: faction (not implemented)
+   * 4: community channel
    */
   type: {
     type: DataTypes.TINYINT,
     allowNull: false,
     defaultValue: 0,
+  },
+
+  communityId: {
+    type: DataTypes.INTEGER.UNSIGNED,
+    allowNull: true,
+    references: {
+      model: 'Communities',
+      key: 'id',
+    },
   },
 
   lastMessage: {

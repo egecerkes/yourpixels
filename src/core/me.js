@@ -27,7 +27,7 @@ export default async function getMe(user, lang) {
 
   userdata.canvases = getLocalizedCanvases(lang);
   userdata.channels = {
-    ...chatProvider.getDefaultChannels(lang),
+    ...chatProvider.getDefaultChannels(lang, user.userlvl || 0),
     ...userdata.channels,
   };
 

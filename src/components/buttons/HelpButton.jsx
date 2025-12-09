@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { FaQuestion } from 'react-icons/fa';
+import { FaInfoCircle } from 'react-icons/fa';
 import { t } from 'ttag';
 
 import useLink from '../hooks/link';
@@ -20,7 +20,7 @@ const HelpButton = () => {
       title={t`Help`}
       tabIndex={-1}
     >
-      <FaQuestion />
+      <FaInfoCircle />
     </div>
   );
 };

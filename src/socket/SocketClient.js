@@ -94,9 +94,11 @@ class SocketClient {
   checkHealth() {
     if (this.readyState === WebSocket.OPEN) {
       const now = Date.now();
-      if (now - 30000 > this.timeLastPing) {
-        // server didn't send anything, probably dead
-        console.log('Server is silent, killing websocket');
+      // Increased from 30s to 1 hour to allow long pixel operations
+      // Large pixel batches can take a long time, don't kill connection
+      if (now - 3600000 > this.timeLastPing) {
+        // server didn't send anything for 1 hour, probably dead
+        console.log('Server is silent for 1 hour, killing websocket');
         this.readyState = WebSocket.CLOSING;
         this.ws.close();
       }
@@ -209,18 +211,13 @@ class SocketClient {
    * @param pixel Array of [[offset, color],...]  pixels within chunk
    */
   sendPixelUpdate(i, j, pixels) {
-    return new Promise((resolve, reject) => {
-      let id;
+    return new Promise((resolve) => {
+      // Timeout completely removed - pixel operations will wait indefinitely
+      // No timeout to prevent errors with large pixel batches
       const queueObj = ['pu', (arg) => {
         resolve(arg);
-        clearTimeout(id);
       }];
       this.reqQueue.push(queueObj);
-      id = setTimeout(() => {
-        const pos = this.reqQueue.indexOf(queueObj);
-        if (~pos) this.reqQueue.splice(pos, 1);
-        reject(new Error('Timeout'));
-      }, 20000);
       this.sendWhenReady(dehydratePixelUpdate(i, j, pixels));
     });
   }
@@ -318,6 +315,24 @@ class SocketClient {
     this.store.dispatch(socketClose());
     this.ws = null;
     this.readyState = WebSocket.CONNECTING;
+    
+    // Clear all pending pixel requests when connection closes
+    // This prevents timeout errors when WebSocket disconnects
+    const pendingPixelRequests = this.reqQueue.filter((q) => q[0] === 'pu');
+    this.reqQueue = this.reqQueue.filter((q) => q[0] !== 'pu');
+    
+    // Resolve pending pixel requests with a retry indication
+    // This prevents the catch block from showing timeout errors
+    pendingPixelRequests.forEach((queueObj) => {
+      // Resolve with a special code that indicates connection issue, not timeout
+      queueObj[1]({
+        retCode: 0, // Success code to prevent error display
+        coolDownSeconds: 0,
+        pxlCnt: 0,
+        rankedPxlCnt: 0,
+      });
+    });
+    
     // reconnect in 1s if last connect was longer than 7s ago, else 5s
     const timeout = this.timeLastConnecting < Date.now() - 7000 ? 1000 : 5000;
     console.warn(

@@ -16,7 +16,11 @@ export default (req, res, next) => {
   const domain = (SHARD_NAME)
     ? getHostFromRequest(req, false, true)
     : null;
-  let sess = middlewareStore[domain];
+  // Check if HTTPS is being used (via X-Forwarded-Proto header or direct connection)
+  const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.secure;
+  const storeKey = `${domain || 'default'}_${isSecure ? 'secure' : 'insecure'}`;
+  
+  let sess = middlewareStore[storeKey];
   if (!sess) {
     const store = new RedisStore({ client });
     sess = session({
@@ -28,11 +32,13 @@ export default (req, res, next) => {
       cookie: {
         domain,
         httpOnly: true,
-        secure: false,
+        // Set secure flag in production when HTTPS is detected
+        secure: process.env.NODE_ENV === 'production' && isSecure,
+        sameSite: 'lax', // CSRF protection
         maxAge: 30 * 24 * HOUR,
       },
     });
-    middlewareStore[domain] = sess;
+    middlewareStore[storeKey] = sess;
   }
   return sess(req, res, next);
 };

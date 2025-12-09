@@ -59,6 +59,8 @@ class Renderer2D extends Renderer {
     const viewport = document.createElement('canvas');
     viewport.className = 'viewport';
     this.viewport = viewport;
+    this.isZooming = false;
+    this.zoomAnimationId = null;
     //--
     this.canvas = document.createElement('canvas');
     this.onWindowResize();

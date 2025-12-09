@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { MdPalette } from 'react-icons/md';
+import { FaPalette } from 'react-icons/fa';
 import { t } from 'ttag';
 
 import { toggleOpenPalette } from '../../store/actions';
@@ -31,7 +31,7 @@ const PalselButton = () => {
       tabIndex={0}
       onClick={() => dispatch(toggleOpenPalette())}
     >
-      <MdPalette />
+      <FaPalette />
     </div>
   );
 };

@@ -8,7 +8,7 @@
   "description": "Unlimited planet canvas for placing pixels",
   "main": "server.js",
   "scripts": {
-    "build": "node scripts/build.js",
+    "build": "node scripts/build.js --langs tr",
     "build:server": "webpack --config ./webpack.config.server.js",
     "build:client": "node scripts/build.js --client",
     "build:dev": "webpack --config ./webpack.config.server.js && webpack --env development --config ./webpack.config.client.js && npm run minify-css",
@@ -96,6 +96,7 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "generate-package-json-webpack-plugin": "^2.6.0",
+    "loader-utils": "^3.3.1",
     "ttag-cli": "^1.10.9",
     "ttag-po-loader": "0.0.2",
     "webpack": "^5.89.0",

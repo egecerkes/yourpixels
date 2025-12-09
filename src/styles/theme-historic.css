@@ -1,0 +1,247 @@
+/* Tarihi Koyu Tema - Antika Parşömen Görünümü */
+
+body {
+  background: #1a1612;
+  color: #d4af37;
+}
+
+a:link {
+  color: #d4af37;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+}
+
+a:visited {
+  color: #b8941f;
+  text-shadow: 0 0 6px rgba(184, 148, 31, 0.5);
+}
+
+a:hover {
+  color: #f4d03f;
+  text-shadow: 0 0 12px rgba(244, 208, 63, 0.8);
+}
+
+.modallink {
+  color: #d4af37;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+}
+
+.modallink:hover {
+  color: #f4d03f;
+  text-shadow: 0 0 12px rgba(244, 208, 63, 0.8);
+}
+
+.inarea {
+  border-color: #8b7355;
+}
+
+.tab-list-item {
+  color: #d4af37;
+}
+
+.tab-list-item.active {
+  background-color: #3d2817;
+  color: #d4af37;
+  border-color: #8b7355;
+}
+
+.tab-list-item:not(.active):hover {
+  background-color: #2a1d12;
+}
+
+tr:nth-child(even) {
+  background-color: #2a1d12;
+}
+
+tr:nth-child(odd) {
+  background-color: #1f1610;
+}
+
+.window, .popup {
+  background: linear-gradient(135deg, #2a1d12 0%, #1a1612 50%, #2a1d12 100%);
+  border: 2px solid #8b7355;
+  color: #d4af37;
+  box-shadow: 0 0 20px rgba(139, 115, 85, 0.3), inset 0 0 30px rgba(139, 115, 85, 0.1);
+}
+
+.win-title {
+  background: linear-gradient(135deg, #3d2817 0%, #2a1d12 100%);
+  border: 2px solid #8b7355;
+  color: #d4af37;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+  box-shadow: 0 0 10px rgba(139, 115, 85, 0.3);
+}
+
+.win-title:hover {
+  background: linear-gradient(135deg, #4a3320 0%, #3d2817 100%);
+  box-shadow: 0 0 15px rgba(139, 115, 85, 0.5);
+}
+
+.win-topbtn, .modal-topbtn {
+  background: linear-gradient(135deg, #3d2817 0%, #2a1d12 100%);
+  border: 2px solid #8b7355;
+  color: #d4af37;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+}
+
+.win-topbtn:hover, .modal-topbtn:hover {
+  background: linear-gradient(135deg, #4a3320 0%, #3d2817 100%);
+  box-shadow: 0 0 10px rgba(139, 115, 85, 0.4);
+}
+
+.win-topbtn.close:hover {
+  background: linear-gradient(135deg, #5a2a1a 0%, #4a1f10 100%);
+  border-color: #a0522d;
+  color: #d2691e;
+}
+
+.actionbuttons, .coorbox, .onlinebox, .cooldownbox, #palettebox {
+  background: linear-gradient(135deg, #2a1d12 0%, #1a1612 100%);
+  border: 2px solid #8b7355;
+  color: #d4af37;
+  box-shadow: 0 0 15px rgba(139, 115, 85, 0.3), inset 0 0 10px rgba(139, 115, 85, 0.1);
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+}
+
+.actionbuttons:hover, .coorbox:hover, .menu > div:hover, .onlinebox:hover {
+  background: linear-gradient(135deg, #3d2817 0%, #2a1d12 100%);
+  box-shadow: 0 0 25px rgba(139, 115, 85, 0.5), inset 0 0 15px rgba(139, 115, 85, 0.2);
+  border-color: #a0826d;
+  text-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+}
+
+.menu > div {
+  background: linear-gradient(135deg, #2a1d12 0%, #1a1612 100%);
+  border: 2px solid #8b7355;
+  box-shadow: 0 0 30px rgba(139, 115, 85, 0.4), inset 0 0 20px rgba(139, 115, 85, 0.1);
+}
+
+.modal, .Alert {
+  background: linear-gradient(135deg, #2a1d12 0%, #1a1612 50%, #2a1d12 100%);
+  border: 2px solid #8b7355;
+  color: #d4af37;
+  box-shadow: 0 0 50px rgba(139, 115, 85, 0.5), inset 0 0 40px rgba(139, 115, 85, 0.1);
+}
+
+.modal-content, .win-content, .popup-content {
+  color: #d4af37;
+  text-shadow: 0 0 5px rgba(212, 175, 55, 0.4);
+}
+
+h3, h4 {
+  color: #d4af37;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
+}
+
+.modaldesc {
+  color: rgba(212, 175, 55, 0.7);
+}
+
+.modaldivider {
+  background-color: rgba(139, 115, 85, 0.3);
+}
+
+.channeldd, .contextmenu {
+  background-color: #2a1d12;
+  border: 1px solid #8b7355;
+  color: #d4af37;
+  box-shadow: 0 0 10px rgba(139, 115, 85, 0.3);
+}
+
+.chn, .chntype, .contextmenu > div {
+  background-color: #3d2817;
+  color: #d4af37;
+}
+
+.chn.selected, .chn:hover, .chntype.selected, .chntype:hover,
+.contextmenu > div:hover {
+  background-color: #4a3320;
+  box-shadow: 0 0 8px rgba(139, 115, 85, 0.3);
+}
+
+.modalinfo {
+  color: #d4af37;
+}
+
+.modalcvtext {
+  color: rgba(212, 175, 55, 0.7);
+}
+
+.overlay {
+  background-color: rgba(26, 22, 18, 0.85);
+}
+
+.chatname {
+  background-color: #3d2817;
+}
+
+.mention {
+  background-color: #4a3320;
+}
+
+.chatmsg:hover {
+  background-color: rgba(139, 115, 85, 0.2);
+}
+
+.msg {
+  color: #d4af37;
+}
+
+.msg.info {
+  color: #d2691e;
+}
+
+.msg.event {
+  color: #daa520;
+}
+
+.msg.greentext {
+  color: #9acd32;
+}
+
+.ebex {
+  color: #f4d03f;
+}
+
+.chatlink {
+  color: #d4af37;
+}
+
+.statvalue {
+  color: #f4d03f;
+}
+
+.cooldownbox {
+  background: linear-gradient(135deg, #2a1d12 0%, #1a1612 100%);
+  border: 2px solid #8b7355;
+  color: #d4af37;
+}
+
+.notifybox {
+  background-color: rgba(212, 175, 55, 0.9);
+  color: #1a1612;
+  border: 2px solid #8b7355;
+}
+
+.notifybox.green {
+  background-color: rgba(154, 205, 50, 0.9);
+}
+
+.notifybox.red {
+  background-color: rgba(210, 105, 30, 0.9);
+}
+
+#palettebox {
+  background: linear-gradient(135deg, #2a1d12 0%, #1a1612 100%);
+  border: 2px solid #8b7355;
+}
+
+#palettebox .selected,
+#palettebox span:hover {
+  outline: #8b7355 solid 2px;
+  box-shadow: 0 0 10px rgba(139, 115, 85, 0.6);
+}
+
+.win-resize {
+  color: #8b7355;
+}
+

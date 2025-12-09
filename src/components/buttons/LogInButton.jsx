@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { MdPerson } from 'react-icons/md';
+import { FaUserCircle } from 'react-icons/fa';
 import { t } from 'ttag';
 
 import useLink from '../hooks/link';
@@ -20,7 +20,7 @@ const LogInButton = () => {
       title={t`User Area`}
       tabIndex={-1}
     >
-      <MdPerson />
+      <FaUserCircle />
     </div>
   );
 };

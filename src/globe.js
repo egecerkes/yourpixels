@@ -177,10 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const xabs = Math.floor((xi - 0.5) * canvasSize);
       const yabs = Math.floor((0.5 - yi) * canvasSize);
       // console.log(`On ${xabs} / ${yabs} cam: ${camera.position.z}`);
-      coorbox.innerHTML = `(${xabs}, ${yabs})`;
+      // Use textContent instead of innerHTML to prevent XSS attacks
+      if (coorbox) {
+        coorbox.textContent = `(${xabs}, ${yabs})`;
+      }
       elem.style.cursor = 'move';
     } else {
-      elem.style.cursor = 'default';
+      elem.style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\'%3E%3Ccircle cx=\'8\' cy=\'8\' r=\'6\' fill=\'%23000000\'/%3E%3C/svg%3E") 8 8, default';
     }
   }
 

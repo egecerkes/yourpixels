@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { MdFileDownload } from 'react-icons/md';
+import { FaDownload } from 'react-icons/fa';
 import fileDownload from 'js-file-download';
 import { t } from 'ttag';
 
@@ -37,7 +37,7 @@ const DownloadButton = () => {
       tabIndex={0}
       onClick={() => download(view)}
     >
-      <MdFileDownload />
+      <FaDownload />
     </div>
   );
 };

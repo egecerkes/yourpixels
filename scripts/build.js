@@ -13,7 +13,7 @@ const serverConfig = require('../webpack.config.server.js');
 const clientConfig = require('../webpack.config.client.js');
 const { getAllAvailableLocals } = clientConfig;
 
-let langs = 'all';
+let langs = 'tr'; // Default to Turkish only
 let doBuildServer = false;
 let doBuildClient = false;
 let parallel = false;
@@ -69,7 +69,8 @@ function buildServer() {
     const argsc = (langs === 'all')
       ? ['webpack', '--env', 'extract', '--config', './webpack.config.server.js']
       : ['webpack', '--config', './webpack.config.server.js']
-    const serverCompile = spawn('npx', argsc);
+    const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+    const serverCompile = spawn(npxCmd, argsc, { shell: true });
     serverCompile.stdout.on('data', (data) => {
       console.log(data.toString());
     });
@@ -91,7 +92,8 @@ function buildServer() {
 
 function buildClients(slangs) {
   return new Promise((resolve, reject) => {
-    const clientCompile = spawn('npm', ['run', 'build', '--', '--client', '--recursion', '--langs', slangs.join(',')]);
+    const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const clientCompile = spawn(npmCmd, ['run', 'build', '--', '--client', '--recursion', '--langs', slangs.join(',')], { shell: true });
     clientCompile.stdout.on('data', (data) => {
       console.log(data.toString());
     });

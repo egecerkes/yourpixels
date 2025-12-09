@@ -13,7 +13,13 @@ const initialState = {
   // show online users per canvas instead of total
   onlineCanvas: false,
   // selected theme
-  style: 'default',
+  style: 'historic',
+  // drawing tool mode: 'normal', 'brush', 'line', 'fill'
+  drawingMode: 'normal',
+  // button neon effect enabled
+  buttonNeonEnabled: true,
+  // button neon color
+  buttonNeonColor: '#d4af37',
 };
 
 
@@ -119,6 +125,24 @@ export default function gui(
       return {
         ...state,
         chatNotify: !state.chatNotify,
+      };
+
+    case 's/SET_DRAWING_MODE':
+      return {
+        ...state,
+        drawingMode: action.mode,
+      };
+
+    case 's/TGL_BUTTON_NEON':
+      return {
+        ...state,
+        buttonNeonEnabled: !state.buttonNeonEnabled,
+      };
+
+    case 's/SET_BUTTON_NEON_COLOR':
+      return {
+        ...state,
+        buttonNeonColor: action.color,
       };
 
     default:

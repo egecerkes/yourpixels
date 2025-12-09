@@ -26,6 +26,24 @@ const Alert = () => {
     dispatch(closeAlert());
   }, [dispatch]);
 
+  // Filter out timeout messages - never show them
+  const isTimeoutMessage = title && (
+    title.includes('Timeout') || 
+    title.includes('Zaman aşımı') ||
+    title.includes('timeout') ||
+    (message && (
+      message.includes('yanıt alınamadı') ||
+      message.includes('Didn\'t get an answer') ||
+      message.includes('refresh')
+    ))
+  );
+
+  // If it's a timeout message, don't show it
+  if (isTimeoutMessage && open) {
+    dispatch(closeAlert());
+    return null;
+  }
+
   useEffect(() => {
     if (open) {
       window.setTimeout(() => {

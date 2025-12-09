@@ -23,6 +23,12 @@ import {
   getModList,
   removeMod,
   makeMod,
+  getVIPList,
+  addVIP,
+  removeVIP,
+  getAdminCooldownStatus,
+  setAdminCooldownStatus,
+  regenerateAllTiles,
 } from '../../core/adminfunctions';
 
 
@@ -36,6 +42,15 @@ router.use(express.urlencoded({ extended: true }));
 const upload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    // Only allow image files
+    const allowedMimes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only image files (PNG, JPEG, GIF, WebP) are allowed.'), false);
+    }
   },
 });
 
@@ -191,6 +206,34 @@ router.post('/', upload.single('image'), async (req, res, next) => {
       res.status(ret).send(msg);
       return;
     }
+    if (req.body.viplist) {
+      const ret = await getVIPList();
+      res.status(200);
+      res.json(ret);
+      return;
+    }
+    if (req.body.addvip) {
+      // Input validation: ensure userId is a valid number
+      const userId = parseInt(req.body.addvip, 10);
+      if (Number.isNaN(userId) || userId <= 0) {
+        res.status(400).send('Invalid user ID');
+        return;
+      }
+      const ret = await addVIP(userId);
+      res.status(200).send(ret);
+      return;
+    }
+    if (req.body.remvip) {
+      // Input validation: ensure userId is a valid number
+      const userId = parseInt(req.body.remvip, 10);
+      if (Number.isNaN(userId) || userId <= 0) {
+        res.status(400).send('Invalid user ID');
+        return;
+      }
+      const ret = await removeVIP(userId);
+      res.status(200).send(ret);
+      return;
+    }
     next();
   } catch (err) {
     next(err);
@@ -235,14 +278,53 @@ router.post('/', async (req, res, next) => {
       return;
     }
     if (req.body.remmod) {
-      const ret = await removeMod(req.body.remmod);
+      // Input validation: ensure userId is a valid number
+      const userId = parseInt(req.body.remmod, 10);
+      if (Number.isNaN(userId) || userId <= 0) {
+        res.status(400).send('Invalid user ID');
+        return;
+      }
+      const ret = await removeMod(userId);
       res.status(200).send(ret);
       return;
     }
     if (req.body.makemod) {
-      const ret = await makeMod(req.body.makemod);
+      // Input validation: ensure name is valid
+      const name = String(req.body.makemod).trim();
+      if (!name || name.length > 32 || name.length < 2) {
+        res.status(400).send('Invalid username');
+        return;
+      }
+      const ret = await makeMod(name);
       res.status(200);
       res.json(ret);
+      return;
+    }
+    if (req.body.getadmincooldown) {
+      const ret = await getAdminCooldownStatus(req.user.id);
+      res.status(200);
+      res.json({ enabled: ret });
+      return;
+    }
+    if (req.body.setadmincooldown !== undefined) {
+      const enabled = req.body.setadmincooldown === 'true' || req.body.setadmincooldown === true;
+      const ret = await setAdminCooldownStatus(req.user.id, enabled);
+      res.status(200);
+      res.send(ret);
+      return;
+    }
+    if (req.body.regeneratetiles) {
+      aLogger('Starting tile regeneration for all canvases...');
+      // Run in background, don't block the response
+      regenerateAllTiles()
+        .then((result) => {
+          aLogger(`Tile regeneration completed:\n${result}`);
+        })
+        .catch((error) => {
+          aLogger(`Tile regeneration failed: ${error.message}`);
+        });
+      res.status(200);
+      res.send('Tile regeneration started in background. This may take a while. Check logs for progress.');
       return;
     }
     next();

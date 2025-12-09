@@ -13,6 +13,7 @@ import { validateCoorRange } from '../utils/validation';
 import CanvasCleaner from './CanvasCleaner';
 import socketEvents from '../socket/socketEvents';
 import { RegUser } from '../data/sql';
+import { getAdminCooldown, setAdminCooldown } from '../data/redis/adminCooldown';
 import {
   cleanCacheForIP,
 } from '../data/redis/isAllowedCache';
@@ -44,6 +45,11 @@ import {
   protectCanvasArea,
 } from './Image';
 import rollbackCanvasArea from './rollback';
+import { initializeTiles } from './Tile';
+import fs from 'fs';
+import path from 'path';
+import { TILE_FOLDER } from './config';
+import rateLimiter from '../socket/rateLimiter';
 
 /*
  * Execute IP based actions (banning, whitelist, etc.)
@@ -52,11 +58,27 @@ import rollbackCanvasArea from './rollback';
  * @return text of success
  */
 export async function executeIPAction(action, ips, logger = null) {
+  // Input validation: limit input size to prevent DoS
+  if (!ips || typeof ips !== 'string' || ips.length > 10000) {
+    return 'Invalid input: IP list too long or invalid format';
+  }
+  
   const valueArray = ips.split('\n');
+  // Limit number of IPs processed at once
+  if (valueArray.length > 100) {
+    return 'Too many IPs in one request. Maximum 100 IPs allowed.';
+  }
+  
   let out = '';
   for (let i = 0; i < valueArray.length; i += 1) {
     const value = valueArray[i].trim();
     if (!value) {
+      continue;
+    }
+
+    // Basic IP/IID format validation
+    if (value.length > 50 || !/^[a-zA-Z0-9.\-:\[\]]+$/.test(value)) {
+      out += `Invalid format: ${value}\n`;
       continue;
     }
 
@@ -71,6 +93,14 @@ export async function executeIPAction(action, ips, logger = null) {
     if (action === 'iptoiid') {
       const iid = await getIIDofIP(value);
       out += (iid) ? `${iid}\n` : `${value}\n`;
+      continue;
+    }
+
+    if (action === 'clearratelimit') {
+      // Clear rate limit for IP
+      rateLimiter.clear(value);
+      out += `Rate limit cleared for ${value}\n`;
+      continue;
     }
   }
   return out;
@@ -90,6 +120,21 @@ export async function executeIIDAction(
   muid,
   logger = null,
 ) {
+  // Input validation
+  if (!iid || typeof iid !== 'string' || iid.length > 50 || !/^[a-zA-Z0-9\-]+$/.test(iid)) {
+    return 'Invalid IID format';
+  }
+  
+  // Validate reason length if provided
+  if (reason && (typeof reason !== 'string' || reason.length > 500)) {
+    return 'Reason too long. Maximum 500 characters.';
+  }
+  
+  // Validate expire if provided
+  if (expire && (typeof expire !== 'string' || expire.length > 20)) {
+    return 'Invalid expire format';
+  }
+  
   const ip = await getIPofIID(iid);
   if (!ip) {
     return `Could not resolve ${iid}`;
@@ -238,6 +283,29 @@ export async function executeImageAction(
 
   const protect = (action === 'protect');
   const wipe = (action === 'wipe');
+
+  // Validate file exists and is an image
+  if (!file || !file.buffer) {
+    return [400, 'No file provided'];
+  }
+
+  // Additional validation: check file signature (magic bytes) to prevent file type spoofing
+  const buffer = file.buffer;
+  const isImage = buffer.length >= 4 && (
+    // PNG signature: 89 50 4E 47
+    (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) ||
+    // JPEG signature: FF D8 FF
+    (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) ||
+    // GIF signature: 47 49 46 38
+    (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) ||
+    // WebP signature: RIFF...WEBP
+    (buffer.length >= 12 && buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && 
+     buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50)
+  );
+
+  if (!isImage) {
+    return [400, 'Invalid image file. File signature does not match image format.'];
+  }
 
   try {
     const { data, info } = await sharp(file.buffer)
@@ -603,21 +671,30 @@ export async function removeMod(userId) {
 }
 
 export async function makeMod(name) {
-  if (!name) {
+  if (!name || typeof name !== 'string') {
     throw new Error('No username given');
+  }
+  // Input validation: sanitize and validate name
+  const sanitizedName = name.trim();
+  if (sanitizedName.length < 2 || sanitizedName.length > 32) {
+    throw new Error('Username must be between 2 and 32 characters');
+  }
+  // Prevent SQL injection and XSS in username
+  if (!/^[a-zA-Z0-9_\-]+$/.test(sanitizedName)) {
+    throw new Error('Username contains invalid characters');
   }
   let user = null;
   try {
     user = await RegUser.findOne({
       where: {
-        name,
+        name: sanitizedName,
       },
     });
   } catch {
     throw new Error(`Invalid user ${name}`);
   }
   if (!user) {
-    throw new Error(`User ${name} not found`);
+    throw new Error(`User ${sanitizedName} not found`);
   }
   try {
     await user.update({
@@ -626,6 +703,138 @@ export async function makeMod(name) {
     return [user.id, user.name];
   } catch {
     throw new Error('Couldn\'t remove Mod from user');
+  }
+}
+
+/*
+ * Get list of VIPs
+ * @return [{id, name}, ...] list
+ */
+export async function getVIPList() {
+  const vips = await RegUser.findAll({
+    where: {
+      vip: true,
+    },
+    attributes: ['id', 'name'],
+    raw: true,
+  });
+  return vips;
+}
+
+export async function addVIP(userId) {
+  if (Number.isNaN(userId)) {
+    throw new Error('Invalid userId');
+  }
+  let user = null;
+  try {
+    user = await RegUser.findByPk(userId);
+  } catch {
+    throw new Error('Database error on add VIP');
+  }
+  if (!user) {
+    throw new Error('User not found');
+  }
+  try {
+    await user.update({
+      vip: true,
+    });
+    return `VIP status added to user ${user.name} (${userId})`;
+  } catch {
+    throw new Error('Couldn\'t add VIP to user');
+  }
+}
+
+export async function removeVIP(userId) {
+  if (Number.isNaN(userId)) {
+    throw new Error('Invalid userId');
+  }
+  let user = null;
+  try {
+    user = await RegUser.findByPk(userId);
+  } catch {
+    throw new Error('Database error on remove VIP');
+  }
+  if (!user) {
+    throw new Error('User not found');
+  }
+  try {
+    await user.update({
+      vip: false,
+    });
+    return `VIP status removed from user ${user.name} (${userId})`;
+  } catch {
+    throw new Error('Couldn\'t remove VIP from user');
+  }
+}
+
+/*
+ * Get admin cooldown preference
+ */
+export async function getAdminCooldownStatus(userId) {
+  if (Number.isNaN(userId)) {
+    throw new Error('Invalid userId');
+  }
+  try {
+    const enabled = await getAdminCooldown(userId);
+    return enabled;
+  } catch {
+    throw new Error('Couldn\'t get admin cooldown status');
+  }
+}
+
+/*
+ * Set admin cooldown preference
+ */
+export async function setAdminCooldownStatus(userId, enabled) {
+  if (Number.isNaN(userId)) {
+    throw new Error('Invalid userId');
+  }
+  try {
+    await setAdminCooldown(userId, enabled);
+    return `Admin cooldown ${enabled ? 'enabled' : 'disabled'} for user ${userId}`;
+  } catch {
+    throw new Error('Couldn\'t set admin cooldown status');
+  }
+}
+
+/*
+ * Regenerate all tiles for all canvases
+ * This fixes zoom issues where zoomed out view shows nothing
+ */
+export async function regenerateAllTiles() {
+  try {
+    const canvasesData = canvases;
+    const canvasList = Object.entries(canvasesData).map(([id, canvas]) => ({
+      id,
+      ...canvas,
+    }));
+
+    const results = [];
+    for (const canvas of canvasList) {
+      const canvasId = canvas.id;
+      const canvasTileFolder = path.join(TILE_FOLDER, canvasId);
+      
+      // Ensure tile folder exists
+      if (!fs.existsSync(canvasTileFolder)) {
+        fs.mkdirSync(canvasTileFolder, { recursive: true });
+      }
+
+      try {
+        await initializeTiles(
+          canvasId,
+          canvas,
+          canvasTileFolder,
+          true, // force = true to regenerate all tiles
+        );
+        results.push(`Canvas ${canvasId}: Tiles regenerated successfully`);
+      } catch (error) {
+        results.push(`Canvas ${canvasId}: Error - ${error.message}`);
+      }
+    }
+
+    return results.join('\n');
+  } catch (error) {
+    throw new Error(`Failed to regenerate tiles: ${error.message}`);
   }
 }
 

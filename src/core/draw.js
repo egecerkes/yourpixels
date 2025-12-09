@@ -118,8 +118,15 @@ export default async function drawByOffsets(
     const isAdmin = (user.userlvl === 1);
     const req = (isAdmin) ? null : canvas.req;
     const clrIgnore = canvas.cli || 0;
-    let factor = (isAdmin || (user.userlvl > 0 && pixels[0][1] < clrIgnore))
+    // Check if admin wants cooldown enabled
+    const adminCooldownEnabled = user.adminCooldownEnabled !== false; // default true for backward compatibility
+    let factor = ((isAdmin && !adminCooldownEnabled) || (user.userlvl > 0 && pixels[0][1] < clrIgnore))
       ? 0.0 : coolDownFactor;
+
+    // VIP users have 2x faster cooldown (half the normal cooldown)
+    if (user.regUser && user.regUser.vip) {
+      factor *= 0.5;
+    }
 
     if (user.country === 'tr') {
       factor *= 1.4;
@@ -132,8 +139,10 @@ export default async function drawByOffsets(
 
     /*
      * validate pixels
+     * Admin pixels should be counted even if pcd is 0
+     * unless admin has disabled cooldown (adminCooldownEnabled = false)
      */
-    let ranked = canvas.ranked && userId && pcd;
+    let ranked = canvas.ranked && userId && (pcd > 0 || (isAdmin && adminCooldownEnabled));
     for (let u = 0; u < pixels.length; u += 1) {
       const [offset, color] = pixels[u];
       pxlOffsets.push(offset);
@@ -229,7 +238,9 @@ export default async function drawByOffsets(
     }
 
     const duration = Date.now() - startTime;
-    if (duration > 5000) {
+    // Increased threshold from 5s to 15s for large pixel batches
+    // Large pixel operations are expected to take longer
+    if (duration > 15000) {
       logger.warn(
         // eslint-disable-next-line max-len
         `Long response time of ${duration}ms for placing ${pxlCnt} pixels for user ${user.id || user.ip}`,

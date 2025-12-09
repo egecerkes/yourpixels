@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { useSelector, shallowEqual } from 'react-redux';
-import { Md3DRotation } from 'react-icons/md';
+import { FaGlobe } from 'react-icons/fa';
 import { t } from 'ttag';
 
 
@@ -35,7 +35,7 @@ const GlobeButton = () => {
       className="actionbuttons"
       onClick={() => globe(canvasId, canvasIdent, canvasSize, view)}
     >
-      <Md3DRotation />
+      <FaGlobe />
     </div>
   );
 };

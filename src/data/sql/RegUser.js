@@ -93,6 +93,12 @@ const RegUser = sequelize.define('User', {
     type: DataTypes.DATE,
     allowNull: true,
   },
+
+  vip: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
 }, {
   timestamps: true,
   updatedAt: false,

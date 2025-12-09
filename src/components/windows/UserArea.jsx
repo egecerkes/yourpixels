@@ -21,6 +21,8 @@ const Rankings = React.lazy(() => import(/* webpackChunkName: "stats" */ '../Ran
 const Converter = React.lazy(() => import(/* webpackChunkName: "converter" */ '../Converter'));
 // eslint-disable-next-line max-len
 const Modtools = React.lazy(() => import(/* webpackChunkName: "modtools" */ '../Modtools'));
+// eslint-disable-next-line max-len
+const Community = React.lazy(() => import(/* webpackChunkName: "community" */ '../Community'));
 
 const UserArea = () => {
   const name = useSelector((state) => state.user.name);
@@ -66,6 +68,13 @@ const UserArea = () => {
             <Converter />
           </Suspense>
         </div>
+        {(name) && (
+        <div label={t`Community`}>
+          <Suspense fallback={<div>{t`Loading...`}</div>}>
+            <Community />
+          </Suspense>
+        </div>
+        )}
         {userlvl && (
         <div label={(userlvl === 1) ? t`Modtools` : t`Modtools`}>
           <Suspense fallback={<div>{t`Loading...`}</div>}>

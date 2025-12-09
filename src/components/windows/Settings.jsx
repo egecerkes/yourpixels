@@ -19,38 +19,49 @@ import {
   toggleLightGrid,
   toggleHistoricalView,
   selectStyle,
+  toggleButtonNeon,
+  setButtonNeonColor,
 } from '../../store/actions';
 
 const SettingsItemSelect = ({
   title, values, selected, onSelect, icon, children,
-}) => (
-  <div className="setitem">
-    <div className="setrow">
-      <h3 className="settitle">{title}</h3>
-      {(icon) && <img alt="" src={icon} />}
-      <select
-        value={selected}
-        onChange={(e) => {
-          const sel = e.target;
-          onSelect(sel.options[sel.selectedIndex].value);
-        }}
-      >
-        {
-          values.map((value) => (
-            <option
-              key={value}
-              value={value}
-            >
-              {value}
-            </option>
-          ))
-        }
-      </select>
+}) => {
+  // Check if values is array of objects or strings
+  const isObjectArray = values.length > 0 && typeof values[0] === 'object';
+  
+  return (
+    <div className="setitem">
+      <div className="setrow">
+        <h3 className="settitle">{title}</h3>
+        {(icon) && <img alt="" src={icon} />}
+        <select
+          value={selected}
+          onChange={(e) => {
+            const sel = e.target;
+            onSelect(sel.options[sel.selectedIndex].value);
+          }}
+        >
+          {
+            values.map((item) => {
+              const value = isObjectArray ? item.value : item;
+              const label = isObjectArray ? item.label : (item === 'circle' ? t`Circle` : item === 'square' ? t`Square` : item);
+              return (
+                <option
+                  key={value}
+                  value={value}
+                >
+                  {label}
+                </option>
+              );
+            })
+          }
+        </select>
+      </div>
+      <div className="modaldesc">{children}</div>
+      <div className="modaldivider" />
     </div>
-    <div className="modaldesc">{children}</div>
-    <div className="modaldivider" />
-  </div>
-);
+  );
+};
 
 function Settings() {
   const [
@@ -64,6 +75,8 @@ function Settings() {
     isMuted,
     chatNotify,
     isHistoricalView,
+    buttonNeonEnabled,
+    buttonNeonColor,
   ] = useSelector((state) => [
     state.gui.showGrid,
     state.gui.showPixelNotify,
@@ -75,6 +88,8 @@ function Settings() {
     state.gui.mute,
     state.gui.chatNotify,
     state.canvas.isHistoricalView,
+    state.gui.buttonNeonEnabled,
+    state.gui.buttonNeonColor,
   ], shallowEqual);
   const dispatch = useDispatch();
 
@@ -151,6 +166,31 @@ function Settings() {
       >
         {t`Show Grid in white instead of black.`}
       </SettingsItem>
+      <SettingsItem
+        title={t`Button Neon Effect`}
+        value={buttonNeonEnabled}
+        onToggle={() => dispatch(toggleButtonNeon())}
+      >
+        {t`Enable neon glow effect on buttons.`}
+      </SettingsItem>
+      {buttonNeonEnabled && (
+        <SettingsItemSelect
+          title={t`Neon Color`}
+          values={[
+            { value: '#00ff41', label: t`Green` },
+            { value: '#00ff88', label: t`Light Green` },
+            { value: '#00ffff', label: t`Cyan` },
+            { value: '#ff00ff', label: t`Magenta` },
+            { value: '#ffff00', label: t`Yellow` },
+            { value: '#ff0000', label: t`Red` },
+            { value: '#0000ff', label: t`Blue` },
+          ]}
+          selected={buttonNeonColor}
+          onSelect={(color) => dispatch(setButtonNeonColor(color))}
+        >
+          {t`Select the color for button neon effect.`}
+        </SettingsItemSelect>
+      )}
       {(window.ssv && window.ssv.backupurl) && (
       <SettingsItem
         title={t`Historical View`}

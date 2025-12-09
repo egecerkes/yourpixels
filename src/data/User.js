@@ -12,6 +12,7 @@ import sequelize from './sql/sequelize';
 import { RegUser, Channel, UserBlock } from './sql';
 import { setCoolDown, getCoolDown } from './redis/cooldown';
 import { getUserRanks } from './redis/ranks';
+import { getAdminCooldown } from './redis/adminCooldown';
 import { getIPv6Subnet } from '../utils/ip';
 import { ADMIN_IDS } from '../core/config';
 
@@ -59,6 +60,7 @@ class User {
    * 2: Mod
    */
   userlvl; // number
+  adminCooldownEnabled; // boolean - if false, admin has no cooldown (default: true)
 
   constructor() {
     this.resetRegUser();
@@ -84,6 +86,10 @@ class User {
         this.id = id;
       }
     }
+    // Load admin cooldown preference from Redis
+    if (this.userlvl === 1 && this.id) {
+      this.adminCooldownEnabled = await getAdminCooldown(this.id);
+    }
   }
 
   resetRegUser() {
@@ -93,6 +99,7 @@ class User {
     this.channels = {};
     this.blocked = [];
     this.userlvl = 0;
+    this.adminCooldownEnabled = true; // default: cooldown enabled
   }
 
   setRegUser(reguser) {

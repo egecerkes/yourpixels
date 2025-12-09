@@ -6,7 +6,7 @@ import React, {
   useState, useEffect,
 } from 'react';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { MdForum } from 'react-icons/md';
+import { FaComments } from 'react-icons/fa';
 import { t } from 'ttag';
 
 import {
@@ -99,7 +99,7 @@ const ChatButton = () => {
           className="chnunread"
         >⦿</div>
       )}
-      <MdForum />
+      <FaComments />
     </div>
   );
 };

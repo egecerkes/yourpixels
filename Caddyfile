@@ -1,0 +1,46 @@
+# Caddy Reverse Proxy Configuration for PixelPlanet
+# Port 3500'de çalışan uygulamayı 80 portuna yönlendirir
+
+localhost {
+    # Reverse proxy ayarları
+    reverse_proxy 127.0.0.1:3500 {
+        # WebSocket desteği
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+        
+        # Real IP header'ı
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        
+        # Timeout ayarları
+        transport http {
+            dial_timeout 60s
+            response_header_timeout 60s
+            idle_timeout 7d
+        }
+    }
+    
+    # Client body size limit
+    request_body_max_size 10MB
+}
+
+# SSL ile kullanmak isterseniz:
+# yourdomain.com {
+#     reverse_proxy 127.0.0.1:3500 {
+#         header_up Connection {>Connection}
+#         header_up Upgrade {>Upgrade}
+#         header_up X-Real-IP {remote_host}
+#         header_up X-Forwarded-For {remote_host}
+#         header_up X-Forwarded-Proto {scheme}
+#         header_up X-Forwarded-Host {host}
+#         transport http {
+#             dial_timeout 60s
+#             response_header_timeout 60s
+#             idle_timeout 7d
+#         }
+#     }
+#     request_body_max_size 10MB
+# }
+

@@ -100,6 +100,27 @@ export function selectStyle(style) {
   };
 }
 
+export function setDrawingMode(mode) {
+  return {
+    type: 's/SET_DRAWING_MODE',
+    mode,
+  };
+}
+
+
+export function toggleButtonNeon() {
+  return {
+    type: 's/TGL_BUTTON_NEON',
+  };
+}
+
+export function setButtonNeonColor(color) {
+  return {
+    type: 's/SET_BUTTON_NEON_COLOR',
+    color,
+  };
+}
+
 export function toggleOpenMenu() {
   return {
     type: 's/TGL_OPEN_MENU',
@@ -171,20 +192,64 @@ export function moveDirection([vx, vy]) {
   };
 }
 
+// Smooth movement animation (13 steps)
+function smoothMove(dispatch, getState, direction, steps = 13, duration = 400) {
+  const { viewscale } = getState().canvas;
+  const speed = 100.0 / viewscale;
+  const totalDistance = [speed * direction[0], speed * direction[1]];
+  const stepDistance = [totalDistance[0] / steps, totalDistance[1] / steps];
+  
+  const startTime = performance.now();
+  let currentStep = 0;
+  
+  function animate(currentTime) {
+    const elapsed = currentTime - startTime;
+    const stepDuration = duration / steps;
+    const stepsCompleted = Math.floor(elapsed / stepDuration);
+    
+    if (stepsCompleted > currentStep && currentStep < steps) {
+      const progress = (elapsed - (currentStep * stepDuration)) / stepDuration;
+      const easedProgress = easeOutCubic(Math.min(progress, 1));
+      
+      const stepMove = [
+        stepDistance[0] * (1 + easedProgress) / 2,
+        stepDistance[1] * (1 + easedProgress) / 2,
+      ];
+      
+      dispatch(move(stepMove));
+      currentStep = stepsCompleted;
+    }
+    
+    if (currentStep < steps) {
+      requestAnimationFrame(animate);
+    }
+  }
+  
+  requestAnimationFrame(animate);
+}
+
 export function moveNorth() {
-  return moveDirection([0, -1]);
+  return (dispatch, getState) => {
+    smoothMove(dispatch, getState, [0, -1], 13, 400);
+  };
 }
 
 export function moveWest() {
-  return moveDirection([-1, 0]);
+  return (dispatch, getState) => {
+    smoothMove(dispatch, getState, [-1, 0], 13, 400);
+  };
 }
 
 export function moveSouth() {
-  return moveDirection([0, 1]);
+  return (dispatch, getState) => {
+    smoothMove(dispatch, getState, [0, 1], 13, 400);
+  };
 }
 
 export function moveEast() {
-  return moveDirection([1, 0]);
+  return (dispatch, getState) => {
+    smoothMove(dispatch, getState, [1, 0], 13, 400);
+  };
 }
 
 export function setScale(scale, zoompoint) {
@@ -195,11 +260,48 @@ export function setScale(scale, zoompoint) {
   };
 }
 
+// Easing function for smooth animations
+function easeOutCubic(t) {
+  return 1 - ((1 - t) ** 3);
+}
+
+// Smooth zoom animation with motion blur
+function smoothZoom(dispatch, getState, targetScale, zoompoint, duration = 300) {
+  const startScale = getState().canvas.scale;
+  const startTime = performance.now();
+  
+  // Get viewport element and add motion blur class
+  const viewport = document.querySelector('.viewport');
+  if (viewport) {
+    viewport.classList.add('zooming');
+  }
+  
+  function animate(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const easedProgress = easeOutCubic(progress);
+    
+    const currentScale = startScale + (targetScale - startScale) * easedProgress;
+    dispatch(setScale(currentScale, zoompoint));
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // Remove motion blur when animation completes
+      if (viewport) {
+        viewport.classList.remove('zooming');
+      }
+    }
+  }
+  
+  requestAnimationFrame(animate);
+}
+
 export function zoomIn(zoompoint) {
   return (dispatch, getState) => {
     const { scale } = getState().canvas;
     const zoomscale = scale >= 1.0 ? scale * 1.1 : scale * 1.04;
-    dispatch(setScale(zoomscale, zoompoint));
+    smoothZoom(dispatch, getState, zoomscale, zoompoint, 30);
   };
 }
 
@@ -207,7 +309,7 @@ export function zoomOut(zoompoint) {
   return (dispatch, getState) => {
     const { scale } = getState().canvas;
     const zoomscale = scale >= 1.0 ? scale / 1.1 : scale / 1.04;
-    dispatch(setScale(zoomscale, zoompoint));
+    smoothZoom(dispatch, getState, zoomscale, zoompoint, 30);
   };
 }
 

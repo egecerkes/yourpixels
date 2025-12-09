@@ -59,18 +59,30 @@ class PixelTransferController {
     let ret;
     try {
       ret = await this.socketClient.sendPixelUpdate(i, j, pixels);
-    } catch {
-      // timeout
-      ret = {
-        retCode: 16,
-        coolDownSeconds: 0,
-        pxlCnt: 0,
-      };
-      store.dispatch(pAlert(
-        t`Error :(`,
-        t`Didn't get an answer from pixelplanet. Maybe try to refresh?`,
-        'error',
-      ));
+      // If retCode is 0 but pxlCnt is 0, it means connection was lost
+      // Silently retry by re-adding to queue instead of showing error
+      if (ret && ret.retCode === 0 && ret.pxlCnt === 0 && pixels.length > 0) {
+        // Connection issue, re-add to queue to retry
+        this.pixelQueue.unshift({ i, j, pixels });
+        store.dispatch(setPixelsFetching(false));
+        setTimeout(this.requestFromQueue, 1000);
+        return;
+      }
+    } catch (err) {
+      // Never show timeout errors - always silently retry
+      // Re-add to queue and retry after a short delay
+      this.pixelQueue.unshift({ i, j, pixels });
+      store.dispatch(setPixelsFetching(false));
+      setTimeout(this.requestFromQueue, 1000);
+      return;
+    }
+
+    // If ret is undefined or null, silently retry
+    if (!ret) {
+      this.pixelQueue.unshift({ i, j, pixels });
+      store.dispatch(setPixelsFetching(false));
+      setTimeout(this.requestFromQueue, 1000);
+      return;
     }
 
     const {
@@ -78,6 +90,14 @@ class PixelTransferController {
       coolDownSeconds,
       pxlCnt,
     } = ret;
+
+    // Completely ignore retCode 16 (timeout) - silently retry without showing error
+    if (retCode === 16) {
+      this.pixelQueue.unshift({ i, j, pixels });
+      store.dispatch(setPixelsFetching(false));
+      setTimeout(this.requestFromQueue, 1000);
+      return;
+    }
 
     if (coolDownSeconds) {
       store.dispatch(notify(coolDownSeconds));
@@ -161,16 +181,16 @@ class PixelTransferController {
         msg = t`Your Internet Provider is banned from playing this game`;
         break;
       case 16:
-        errorTitle = t`Timeout`;
-        // eslint-disable-next-line max-len
-        msg = t`Didn't get an answer from pixelplanet. Maybe try to refresh if problem persists?`;
-        break;
+        // Timeout - should never reach here as it's handled above
+        // Silently return without showing error
+        return;
       default:
         errorTitle = t`Weird`;
         msg = t`Couldn't set Pixel`;
     }
 
-    if (msg || errorTitle) {
+    // Never show timeout errors (retCode 16) - they are handled above
+    if ((msg || errorTitle) && retCode !== 16) {
       store.dispatch(pAlert(
         (errorTitle || t`Error ${retCode}`),
         msg,

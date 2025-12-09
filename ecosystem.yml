@@ -1,0 +1,16 @@
+apps:
+  - script     : ./dist/server.js
+    name       : 'ppfun-server'
+    node_args  : --expose-gc
+    watch      : [ 'server.js' ]
+    watch_delay: 5000
+    env:
+      PORT: 3500
+      HOST: "localhost"
+      REDIS_URL: 'redis://localhost:6379'
+      MYSQL_HOST: "localhost"
+      MYSQL_USER: "pixelplanet"
+      MYSQL_DATABASE: "pixelplanet"
+      MYSQL_PW: "pixelplanet123"
+      SESSION_SECRET: "your-secret-key-change-this"
+
