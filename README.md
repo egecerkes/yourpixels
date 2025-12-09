@@ -33,7 +33,7 @@ Click or tab: Place Pixel
 Checkout repository
 
 ```
-git clone https://git.pixelplanet.fun/ppfun/pixelplanet.git
+git clone https://github.com/egecerkes/yourpixels.git
 cd pixelplanet
 ```
 
